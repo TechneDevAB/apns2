@@ -9,11 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"time"
-
-	"golang.org/x/net/http2"
 )
 
 // Apple HTTP/2 Development & Production urls
@@ -35,44 +32,19 @@ var (
 	HTTPClientTimeout = 30 * time.Second
 )
 
-// Client represents a connection with the APNs
-type Client struct {
-	HTTPClient  *http.Client
-	Certificate tls.Certificate
-	Host        string
+type Transport interface {
+	HTTPClient() *http.Client
+	Certificate() *tls.Certificate
 }
 
-// NewClient returns a new Client with an underlying http.Client configured with
-// the correct APNs HTTP/2 transport settings. It does not connect to the APNs
-// until the first Notification is sent via the Push method.
-//
-// As per the Apple APNs Provider API, you should keep a handle on this client
-// so that you can keep your connections with APNs open across multiple
-// notifications; don’t repeatedly open and close connections. APNs treats rapid
-// connection and disconnection as a denial-of-service attack.
-//
-// If your use case involves multiple long-lived connections, consider using
-// the ClientManager, which manages clients for you.
-func NewClient(certificate tls.Certificate) *Client {
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{certificate},
-	}
-	if len(certificate.Certificate) > 0 {
-		tlsConfig.BuildNameToCertificate()
-	}
-	transport := &http2.Transport{
-		TLSClientConfig: tlsConfig,
-		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
-			return tls.DialWithDialer(&net.Dialer{Timeout: TLSDialTimeout}, network, addr, cfg)
-		},
-	}
+type Client struct {
+	transport Transport
+	Host      string
+}
+
+func NewClient(transport Transport) *Client {
 	return &Client{
-		HTTPClient: &http.Client{
-			Transport: transport,
-			Timeout:   HTTPClientTimeout,
-		},
-		Certificate: certificate,
-		Host:        DefaultHost,
+		transport: transport,
 	}
 }
 
@@ -103,7 +75,10 @@ func (c *Client) Push(n *Notification) (*Response, error) {
 	url := fmt.Sprintf("%v/3/device/%v", c.Host, n.DeviceToken)
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	setHeaders(req, n)
-	httpRes, err := c.HTTPClient.Do(req)
+
+	httpClient := c.transport.HTTPClient()
+
+	httpRes, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

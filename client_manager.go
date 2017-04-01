@@ -50,7 +50,7 @@ func NewClientManager() *ClientManager {
 	manager := &ClientManager{
 		MaxSize: 64,
 		MaxAge:  10 * time.Minute,
-		Factory: NewClient,
+		// Factory: NewClient,
 	}
 
 	manager.initInternals()
@@ -65,7 +65,7 @@ func (m *ClientManager) Add(client *Client) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	key := cacheKey(client.Certificate)
+	key := cacheKey(*client.transport.Certificate())
 	now := time.Now()
 	if ele, hit := m.cache[key]; hit {
 		item := ele.Value.(*managerItem)
