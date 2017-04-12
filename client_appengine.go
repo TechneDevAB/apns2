@@ -17,7 +17,7 @@ type GAETransport struct {
 	httpClient  *http.Client
 	certificate *tls.Certificate
 	GConn       *socket.Conn
-	Ctx         context.Context
+	ctx         context.Context
 }
 
 func NewGAETransport(certificate tls.Certificate) *GAETransport {
@@ -33,13 +33,13 @@ func NewGAETransport(certificate tls.Certificate) *GAETransport {
 	transport := &http2.Transport{
 		TLSClientConfig: tlsConfig,
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
-			//gConn, err := socket.Dial(gaeTransport.Ctx, network, addr)
+			//gConn, err := socket.Dial(gaeTransport.ctx, network, addr)
 			//if err != nil {
 			//	return nil, err
 			//}
 
 			timeout := time.Minute
-			gConn, err := socket.DialTimeout(gae.ctx, "tcp", addr, timeout)
+			gConn, err := socket.DialTimeout(gaeTransport.ctx, "tcp", addr, timeout)
 			if err != nil {
 				return nil, err
 			}
@@ -63,10 +63,10 @@ func NewGAETransport(certificate tls.Certificate) *GAETransport {
 //  client := NewGAEClient(cert)
 //  client.SetContext(ctx)
 //  client.Push(notification)
-func (c *GAETransport) SetContext(ctx context.Context) {
-	c.Ctx = ctx
-	if c.GConn != nil {
-		c.GConn.SetContext(c.Ctx)
+func (t *GAETransport) SetContext(ctx context.Context) {
+	t.ctx = ctx
+	if t.GConn != nil {
+		t.GConn.SetContext(t.ctx)
 	}
 }
 func (t *GAETransport) HTTPClient() *http.Client {
