@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"time"
 
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
@@ -32,10 +33,17 @@ func NewGAETransport(certificate tls.Certificate) *GAETransport {
 	transport := &http2.Transport{
 		TLSClientConfig: tlsConfig,
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
-			gConn, err := socket.Dial(gaeTransport.Ctx, network, addr)
+			//gConn, err := socket.Dial(gaeTransport.Ctx, network, addr)
+			//if err != nil {
+			//	return nil, err
+			//}
+
+			timeout := time.Minute
+			gConn, err := socket.DialTimeout(gae.ctx, "tcp", addr, timeout)
 			if err != nil {
 				return nil, err
 			}
+
 			gaeTransport.GConn = gConn
 
 			tlsConn := tls.Client(gConn, cfg)
