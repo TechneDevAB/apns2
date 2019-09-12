@@ -1,4 +1,4 @@
-// +build !appengine
+// +build local
 
 package apns2
 
