@@ -22,7 +22,8 @@ type GAETransport struct {
 
 func NewGAETransport(certificate tls.Certificate) *GAETransport {
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{certificate},
+		Certificates:       []tls.Certificate{certificate},
+		InsecureSkipVerify: true,
 	}
 	if len(certificate.Certificate) > 0 {
 		tlsConfig.BuildNameToCertificate()
